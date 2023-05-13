@@ -10,15 +10,70 @@
 
 #include <l3xz_hydraulic_ctrl/Node.h>
 
-#include <l3xz_hydraulic_ctrl/const/LegList.h>
-#include <l3xz_hydraulic_ctrl/const/HydraulicJointList.h>
-
 /**************************************************************************************
  * NAMESPACE
  **************************************************************************************/
 
 namespace l3xz
 {
+
+/**************************************************************************************
+ * MODULE INTERNAL FUNCTIONS
+ **************************************************************************************/
+
+static std::string JointToStr(HydraulicJoint const joint)
+{
+  switch(joint)
+  {
+    case HydraulicJoint::Femur: return std::string("femur"); break;
+    case HydraulicJoint::Tibia: return std::string("tibia"); break;
+    default: __builtin_unreachable();
+  }
+}
+
+static std::string LegToStr(Leg const leg)
+{
+  switch(leg)
+  {
+    case Leg::LeftFront:   return std::string("left_front");   break;
+    case Leg::LeftMiddle:  return std::string("left_middle");  break;
+    case Leg::LeftBack:    return std::string("left_back");    break;
+    case Leg::RightFront:  return std::string("right_front");  break;
+    case Leg::RightMiddle: return std::string("right_middle"); break;
+    case Leg::RightBack:   return std::string("right_back");   break;
+    default: __builtin_unreachable();
+  }
+}
+
+inline HydraulicLegJointKey make_key(Leg const leg, HydraulicJoint const joint)
+{
+  return std::tuple(leg, joint);
+}
+
+struct leg_joint_map_key_equal : public std::binary_function<HydraulicLegJointKey, HydraulicLegJointKey, bool>
+{
+  bool operator()(const HydraulicLegJointKey & v0, const HydraulicLegJointKey & v1) const
+  {
+    return (
+      std::get<0>(v0) == std::get<0>(v1) &&
+      std::get<1>(v0) == std::get<1>(v1)
+    );
+  }
+};
+
+/**************************************************************************************
+ * GLOBAL CONSTANTS
+ **************************************************************************************/
+
+static std::list<Leg> const LEG_LIST =
+{
+  Leg::LeftFront, Leg::LeftMiddle, Leg::LeftBack, Leg::RightFront, Leg::RightMiddle, Leg::RightBack
+};
+
+static std::list<HydraulicJoint> const HYDRAULIC_JOINT_LIST =
+{
+  HydraulicJoint::Femur, HydraulicJoint::Tibia
+};
 
 /**************************************************************************************
  * CTOR/DTOR

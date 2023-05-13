@@ -16,8 +16,6 @@ find_package(geometry_msgs REQUIRED)
 include_directories(${L3XZ_HYDRAULIC_CTRL_TARGET} include)
 #######################################################################################
 add_executable(${L3XZ_HYDRAULIC_CTRL_TARGET}
-  src/types/HydraulicJoint.cpp
-  src/types/Leg.cpp
   src/Node.cpp
   src/main.cpp
 )

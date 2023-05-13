@@ -10,16 +10,13 @@
  * INCLUDE
  **************************************************************************************/
 
+#include <tuple>
 #include <chrono>
 
 #include <rclcpp/rclcpp.hpp>
 
 #include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/u_int64.hpp>
-
-#include <geometry_msgs/msg/twist.hpp>
-
-#include <l3xz_hydraulic_ctrl/types/HydraulicLegJoint.h>
 
 /**************************************************************************************
  * NAMESPACE
@@ -29,6 +26,14 @@ namespace l3xz
 {
 
 /**************************************************************************************
+ * TYPEDEFS
+ **************************************************************************************/
+
+enum class HydraulicJoint { Femur, Tibia };
+enum class Leg { LeftFront, LeftMiddle, LeftBack, RightFront, RightMiddle, RightBack };
+typedef std::tuple<Leg, HydraulicJoint> HydraulicLegJointKey;
+
+/**************************************************************************************
  * CLASS DECLARATION
  **************************************************************************************/
 
@@ -36,6 +41,7 @@ class Node : public rclcpp::Node
 {
 public:
   Node();
+
 
 private:
   std::chrono::steady_clock::time_point const _node_start;
