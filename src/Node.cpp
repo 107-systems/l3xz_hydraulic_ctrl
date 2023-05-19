@@ -178,6 +178,33 @@ void Node::ctrl_loop()
     _pump_readiness_pub->publish(msg);
   }
 
+  /* Compare all actual to target angles and calculate the necessary
+   * RPM speed as a dependency of this.
+   */
+  {
+    float angle_diff_sum = 0.0f;
+
+    for (auto leg : LEG_LIST)
+      for (auto joint : HYDRAULIC_JOINT_LIST)
+      {
+        float const angle_actual_rad = _angle_actual_rad_map.at(make_key(leg, joint));
+        float const angle_target_rad = _angle_target_rad_map.at(make_key(leg, joint));
+        float const angle_diff_rad = fabs(angle_actual_rad - angle_target_rad);
+
+        static float const ANGLE_DIFF_EPSILON = (1.0f) * M_PI / 180.0f;
+
+        if (angle_diff_rad > ANGLE_DIFF_EPSILON)
+          angle_diff_sum += angle_diff_rad;
+      }
+
+    static float const k_pump = 10.0f;
+
+    float const pump_rpm_setpoint = k_pump * angle_diff_sum;
+
+    std_msgs::msg::Float32 msg;
+    msg.data = pump_rpm_setpoint;
+    _pump_rpm_setpoint_pub->publish(msg);
+  }
 
 //  for (auto leg : LEG_LIST)
 //    for (auto joint : HYDRAULIC_JOINT_LIST)
