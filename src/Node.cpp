@@ -117,26 +117,30 @@ void Node::init_sub()
   for (auto leg : LEG_LIST)
     for (auto joint : HYDRAULIC_JOINT_LIST)
     {
-      std::stringstream angle_actual_sub_topic;
-      angle_actual_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/actual";
+      {
+        std::stringstream angle_actual_sub_topic;
+        angle_actual_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/actual";
 
-      _angle_actual_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
-        angle_actual_sub_topic.str(),
-        1,
-        [this, leg, joint](std_msgs::msg::Float32::SharedPtr const /* msg */) { /* TODO _gait_ctrl_input.set_angle_deg(leg, joint, msg->data * 180.0f / M_PI); */ });
+        _angle_actual_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
+          angle_actual_sub_topic.str(),
+          1,
+          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const /* msg */) { /* TODO _gait_ctrl_input.set_angle_deg(leg, joint, msg->data * 180.0f / M_PI); */ });
+      }
+      {
+        std::stringstream angle_target_sub_topic;
+        angle_target_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/target";
+
+        _angle_target_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
+          angle_target_sub_topic.str(),
+          1,
+          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const /* msg */) { /* TODO _gait_ctrl_input.set_angle_deg(leg, joint, msg->data * 180.0f / M_PI); */ });
+      }
     }
 }
 
 void Node::init_pub()
 {
-  for (auto leg : LEG_LIST)
-    for (auto joint : HYDRAULIC_JOINT_LIST)
-    {
-      std::stringstream angle_target_pub_topic;
-      angle_target_pub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/target";
 
-      _angle_target_pub[make_key(leg, joint)] = create_publisher<std_msgs::msg::Float32>(angle_target_pub_topic.str(), 1);
-    }
 }
 
 void Node::ctrl_loop()

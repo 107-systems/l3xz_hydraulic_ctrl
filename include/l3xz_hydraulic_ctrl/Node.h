@@ -53,10 +53,10 @@ private:
 
   std::map<HydraulicLegJointKey,
            rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> _angle_actual_sub;
+  std::map<HydraulicLegJointKey,
+           rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> _angle_target_sub;
   void init_sub();
 
-  std::map<HydraulicLegJointKey,
-           rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr> _angle_target_pub;
   void init_pub();
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
