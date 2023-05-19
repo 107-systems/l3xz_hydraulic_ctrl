@@ -51,8 +51,10 @@ private:
   rclcpp::TimerBase::SharedPtr _heartbeat_loop_timer;
   void init_heartbeat();
 
+  std::map<HydraulicLegJointKey, float> _angle_actual_rad_map;
   std::map<HydraulicLegJointKey,
            rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> _angle_actual_sub;
+  std::map<HydraulicLegJointKey, float> _angle_target_rad_map;
   std::map<HydraulicLegJointKey,
            rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> _angle_target_sub;
   void init_sub();

@@ -121,19 +121,29 @@ void Node::init_sub()
         std::stringstream angle_actual_sub_topic;
         angle_actual_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/actual";
 
+        _angle_actual_rad_map[make_key(leg, joint)] = 0.0f;
+
         _angle_actual_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
           angle_actual_sub_topic.str(),
           1,
-          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const /* msg */) { /* TODO _gait_ctrl_input.set_angle_deg(leg, joint, msg->data * 180.0f / M_PI); */ });
+          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const msg)
+          {
+            _angle_actual_rad_map.at(make_key(leg, joint)) = msg->data;
+          });
       }
       {
         std::stringstream angle_target_sub_topic;
         angle_target_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/target";
 
+        _angle_target_rad_map[make_key(leg, joint)] = 0.0f;
+
         _angle_target_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
           angle_target_sub_topic.str(),
           1,
-          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const /* msg */) { /* TODO _gait_ctrl_input.set_angle_deg(leg, joint, msg->data * 180.0f / M_PI); */ });
+          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const msg)
+          {
+            _angle_target_rad_map.at(make_key(leg, joint)) = msg->data;
+          });
       }
     }
 }
