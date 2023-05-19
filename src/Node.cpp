@@ -181,25 +181,27 @@ void Node::ctrl_loop()
   /* Compare all actual to target angles and calculate the necessary
    * RPM speed as a dependency of this.
    */
+  std::map<HydraulicLegJointKey, float> angle_diff_rad_map;
+  for (auto leg: LEG_LIST)
+    for (auto joint: HYDRAULIC_JOINT_LIST)
+    {
+      float const angle_actual_rad = _angle_actual_rad_map.at(make_key(leg, joint));
+      float const angle_target_rad = _angle_target_rad_map.at(make_key(leg, joint));
+      float const angle_diff_rad = angle_actual_rad - angle_target_rad;
+
+      angle_diff_rad_map[make_key(leg, joint)] = angle_diff_rad;
+    }
+
   {
-    float angle_diff_sum = 0.0f;
+    static float const K_PUMP = 10.0f;
 
-    for (auto leg : LEG_LIST)
-      for (auto joint : HYDRAULIC_JOINT_LIST)
-      {
-        float const angle_actual_rad = _angle_actual_rad_map.at(make_key(leg, joint));
-        float const angle_target_rad = _angle_target_rad_map.at(make_key(leg, joint));
-        float const angle_diff_rad = fabs(angle_actual_rad - angle_target_rad);
+    float const abs_angle_diff_sum = std::accumulate(
+      std::begin(angle_diff_rad_map),
+      std::end(angle_diff_rad_map),
+      0,
+      [] (float value, std::map<HydraulicLegJointKey, float>::value_type const & p) { return value + p.second; });
 
-        static float const ANGLE_DIFF_EPSILON = (1.0f) * M_PI / 180.0f;
-
-        if (angle_diff_rad > ANGLE_DIFF_EPSILON)
-          angle_diff_sum += angle_diff_rad;
-      }
-
-    static float const k_pump = 10.0f;
-
-    float const pump_rpm_setpoint = k_pump * angle_diff_sum;
+    float const pump_rpm_setpoint = K_PUMP * abs_angle_diff_sum;
 
     std_msgs::msg::Float32 msg;
     msg.data = pump_rpm_setpoint;
