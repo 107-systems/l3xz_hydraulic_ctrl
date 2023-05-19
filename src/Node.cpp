@@ -150,7 +150,8 @@ void Node::init_sub()
 
 void Node::init_pub()
 {
-
+  _pump_readiness_pub = create_publisher<std_msgs::msg::Int8>("/l3xz/pump/readiness/target", 1);
+  _pump_rpm_setpoint_pub = create_publisher<std_msgs::msg::Float32>("/l3xz/pump/rpm/target", 1);
 }
 
 void Node::ctrl_loop()
@@ -165,6 +166,17 @@ void Node::ctrl_loop()
                          CTRL_LOOP_RATE.count(),
                          std::chrono::duration_cast<std::chrono::milliseconds>(ctrl_loop_rate).count());
   _prev_ctrl_loop_timepoint = now;
+
+
+  /* Periodically send engaged message in order to keep the Orel 20
+   * from accepting drive commands (keep it ready).
+   */
+  {
+    static int8_t const OREL20_READINESS_ENGAGED = 3;
+    std_msgs::msg::Int8 msg;
+    msg.data = OREL20_READINESS_ENGAGED;
+    _pump_readiness_pub->publish(msg);
+  }
 
 
 //  for (auto leg : LEG_LIST)
