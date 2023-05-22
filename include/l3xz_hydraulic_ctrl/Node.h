@@ -18,6 +18,7 @@
 #include <std_msgs/msg/int8.hpp>
 #include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/u_int64.hpp>
+#include <std_msgs/msg/u_int16_multi_array.hpp>
 
 /**************************************************************************************
  * NAMESPACE
@@ -62,6 +63,7 @@ private:
 
   rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr _pump_readiness_pub;
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr _pump_rpm_setpoint_pub;
+  rclcpp::Publisher<std_msgs::msg::UInt16MultiArray>::SharedPtr _servo_pulse_width_pub;
   void init_pub();
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;

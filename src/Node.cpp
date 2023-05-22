@@ -152,6 +152,7 @@ void Node::init_pub()
 {
   _pump_readiness_pub = create_publisher<std_msgs::msg::Int8>("/l3xz/pump/readiness/target", 1);
   _pump_rpm_setpoint_pub = create_publisher<std_msgs::msg::Float32>("/l3xz/pump/rpm/target", 1);
+  _servo_pulse_width_pub = create_publisher<std_msgs::msg::UInt16MultiArray>("/l3xz/servo_pulse_width/target", 1);
 }
 
 void Node::ctrl_loop()
@@ -192,6 +193,9 @@ void Node::ctrl_loop()
       angle_diff_rad_map[make_key(leg, joint)] = angle_diff_rad;
     }
 
+  /* Calculate desired RPM set point and publish the necessary
+   * ROS message which will then be translated to the Cyphal layer.
+   */
   {
     static float const K_PUMP = 10.0f;
 
@@ -208,11 +212,53 @@ void Node::ctrl_loop()
     _pump_rpm_setpoint_pub->publish(msg);
   }
 
-//  for (auto leg : LEG_LIST)
-//    for (auto joint : HYDRAULIC_JOINT_LIST)
-//    {
-//      /* Control hydraulic valves via servos and pump. */
-//    }
+  /* Calculate the desired servo pulse width which are
+   * turned into ROS message -> Cyphal message ->
+   * servo pulse width via OpenCyphalServoController-12
+   */
+  {
+    std::array<uint16_t, 12> servo_pulse_width;
+
+    auto const angle_diff_to_pulse_width_us =
+      [](float const angle_diff_rad) -> uint16_t
+      {
+        static float constexpr ANGLE_DIFF_EPSILON_rad = 2.0f * M_PI / 180.0f;
+
+        static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500;
+
+        if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
+          return SERVO_PULSE_WIDTH_NEUTRAL_us;
+
+        if (angle_diff_rad < 0.0)
+          return 1200U;
+        else
+          return 1800U;
+      };
+
+    servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Femur)));
+    servo_pulse_width[ 1] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Tibia)));
+    servo_pulse_width[ 2] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Femur)));
+    servo_pulse_width[ 3] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia)));
+    servo_pulse_width[ 4] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Femur)));
+    servo_pulse_width[ 5] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Tibia)));
+
+    servo_pulse_width[ 6] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Femur)));
+    servo_pulse_width[ 7] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Tibia)));
+    servo_pulse_width[ 8] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Femur)));
+    servo_pulse_width[ 9] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Tibia)));
+    servo_pulse_width[10] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Femur)));
+    servo_pulse_width[11] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));
+
+    std_msgs::msg::UInt16MultiArray msg;
+    /* Configure dimensions. */
+    msg.layout.dim.push_back(std_msgs::msg::MultiArrayDimension());
+    msg.layout.dim[0].size = servo_pulse_width.size();
+    /* Copy in the data. */
+    msg.data.clear();
+    msg.data.insert(msg.data.end(), servo_pulse_width.begin(), servo_pulse_width.end());
+    /* Publish the message. */
+    _servo_pulse_width_pub->publish(msg);
+  }
 }
 
 /**************************************************************************************
