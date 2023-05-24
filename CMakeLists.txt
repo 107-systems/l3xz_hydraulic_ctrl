@@ -12,6 +12,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(ros2_heartbeat REQUIRED)
 #######################################################################################
 include_directories(${L3XZ_HYDRAULIC_CTRL_TARGET} include)
 #######################################################################################
@@ -22,7 +23,7 @@ add_executable(${L3XZ_HYDRAULIC_CTRL_TARGET}
 #######################################################################################
 target_compile_features(${L3XZ_HYDRAULIC_CTRL_TARGET} PRIVATE cxx_std_17)
 #######################################################################################
-ament_target_dependencies(${L3XZ_HYDRAULIC_CTRL_TARGET} rclcpp std_msgs geometry_msgs)
+ament_target_dependencies(${L3XZ_HYDRAULIC_CTRL_TARGET} rclcpp std_msgs geometry_msgs ros2_heartbeat)
 #######################################################################################
 install(TARGETS
   ${L3XZ_HYDRAULIC_CTRL_TARGET}

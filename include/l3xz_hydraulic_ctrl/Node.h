@@ -20,6 +20,8 @@
 #include <std_msgs/msg/u_int64.hpp>
 #include <std_msgs/msg/u_int16_multi_array.hpp>
 
+#include <ros2_heartbeat/Publisher.h>
+
 /**************************************************************************************
  * NAMESPACE
  **************************************************************************************/
@@ -46,11 +48,8 @@ public:
 
 
 private:
-  std::chrono::steady_clock::time_point const _node_start;
-
-  rclcpp::Publisher<std_msgs::msg::UInt64>::SharedPtr _heartbeat_pub;
   static std::chrono::milliseconds constexpr HEARTBEAT_LOOP_RATE{100};
-  rclcpp::TimerBase::SharedPtr _heartbeat_loop_timer;
+  heartbeat::Publisher::SharedPtr _heartbeat_pub;
   void init_heartbeat();
 
   std::map<HydraulicLegJointKey, float> _angle_actual_rad_map;
