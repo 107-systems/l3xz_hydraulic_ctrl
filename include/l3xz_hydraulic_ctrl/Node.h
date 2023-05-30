@@ -58,6 +58,8 @@ private:
   std::map<HydraulicLegJointKey, float> _angle_target_rad_map;
   std::map<HydraulicLegJointKey,
            rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr> _angle_target_sub;
+  float _pressure_0_actual_pascal, _pressure_1_actual_pascal;
+  rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr _pressure_0_sub, _pressure_1_sub;
   void init_sub();
 
   rclcpp::Publisher<std_msgs::msg::Int8>::SharedPtr _pump_readiness_pub;

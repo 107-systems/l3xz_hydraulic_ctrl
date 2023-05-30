@@ -81,6 +81,8 @@ static std::list<HydraulicJoint> const HYDRAULIC_JOINT_LIST =
 
 Node::Node()
 : rclcpp::Node("l3xz_hydraulic_ctrl")
+, _pressure_0_actual_pascal{0.0f}
+, _pressure_1_actual_pascal{0.0f}
 , _prev_ctrl_loop_timepoint{std::chrono::steady_clock::now()}
 {
   init_heartbeat();
@@ -138,6 +140,22 @@ void Node::init_sub()
           });
       }
     }
+
+  _pressure_0_sub = create_subscription<std_msgs::msg::Float32>(
+    "/l3xz/pressure_0/actual",
+    1,
+    [this](std_msgs::msg::Float32::SharedPtr const msg)
+    {
+      _pressure_0_actual_pascal = msg->data;
+    });
+
+  _pressure_1_sub = create_subscription<std_msgs::msg::Float32>(
+    "/l3xz/pressure_1/actual",
+    1,
+    [this](std_msgs::msg::Float32::SharedPtr const msg)
+    {
+      _pressure_1_actual_pascal = msg->data;
+    });
 }
 
 void Node::init_pub()
