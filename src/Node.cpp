@@ -84,9 +84,9 @@ Node::Node()
 , _pressure_0_actual_pascal{0.0f}
 , _pressure_1_actual_pascal{0.0f}
 , _prev_ctrl_loop_timepoint{std::chrono::steady_clock::now()}
+, _state{State::Startup}
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
 , _pump_rpm_setpoint{STARTUP_PUMP_RAMP_START_RPM}
-, _pump_state{PumpState::Startup}
 {
   init_heartbeat();
   init_sub();
@@ -182,7 +182,36 @@ void Node::ctrl_loop()
   _prev_ctrl_loop_timepoint = now;
 
 
-  pump_ctrl();
+  /* Perform state dependent actions. */
+  State next_state = _state;
+
+  switch (_state)
+  {
+    case State::Startup: next_state = handle_Startup(); break;
+    case State::Control: next_state = handle_Control(); break;
+    default: __builtin_unreachable(); break;
+  }
+
+  _state = next_state;
+
+  /* Periodically send engaged message in order to keep the Orel 20
+   * from accepting drive commands (keep it ready).
+   */
+  {
+    static int8_t const OREL20_READINESS_ENGAGED = 3;
+    std_msgs::msg::Int8 msg;
+    msg.data = OREL20_READINESS_ENGAGED;
+    _pump_readiness_pub->publish(msg);
+  }
+
+  /* Publish RPM set point via ROS message which will then
+   * be translated to the Cyphal layer.
+   */
+  {
+    std_msgs::msg::Float32 msg;
+    msg.data = _pump_rpm_setpoint;
+    _pump_rpm_setpoint_pub->publish(msg);
+  }
 
 
   /* Compare all actual to target angles and calculate the necessary
@@ -248,41 +277,7 @@ void Node::ctrl_loop()
   }
 }
 
-void Node::pump_ctrl()
-{
-  /* Perform state dependent actions. */
-  PumpState next_pump_state = _pump_state;
-
-  switch (_pump_state)
-  {
-    case PumpState::Startup: next_pump_state = pump_handle_Startup(); break;
-    case PumpState::Control: next_pump_state = pump_handle_Control(); break;
-    default: __builtin_unreachable(); break;
-  }
-
-  _pump_state = next_pump_state;
-
-  /* Periodically send engaged message in order to keep the Orel 20
-   * from accepting drive commands (keep it ready).
-   */
-  {
-    static int8_t const OREL20_READINESS_ENGAGED = 3;
-    std_msgs::msg::Int8 msg;
-    msg.data = OREL20_READINESS_ENGAGED;
-    _pump_readiness_pub->publish(msg);
-  }
-
-  /* Publish RPM set point via ROS message which will then
-   * be translated to the Cyphal layer.
-   */
-  {
-    std_msgs::msg::Float32 msg;
-    msg.data = _pump_rpm_setpoint;
-    _pump_rpm_setpoint_pub->publish(msg);
-  }
-}
-
-Node::PumpState Node::pump_handle_Startup()
+Node::State Node::handle_Startup()
 {
   auto const now = std::chrono::steady_clock::now();
   auto const duration_since_last_incr = now - _startup_prev_rpm_inc;
@@ -295,15 +290,15 @@ Node::PumpState Node::pump_handle_Startup()
 
   if (_pump_rpm_setpoint >= STARTUP_PUMP_RAMP_STOP_RPM) {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
-    return PumpState::Control;
+    return State::Control;
   }
 
-  return PumpState::Startup;
+  return State::Startup;
 }
 
-Node::PumpState Node::pump_handle_Control()
+Node::State Node::handle_Control()
 {
-  return PumpState::Control;
+  return State::Control;
 }
 
 /**************************************************************************************
