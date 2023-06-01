@@ -182,6 +182,19 @@ void Node::pump_publish_rpm_setpoint(float const rpm_setpoint)
   _pump_rpm_setpoint_pub->publish(msg);
 }
 
+void Node::valve_block_publish_servo_pulse_width(std::array<uint16_t, 12> const & servo_pulse_width)
+{
+  std_msgs::msg::UInt16MultiArray msg;
+  /* Configure dimensions. */
+  msg.layout.dim.push_back(std_msgs::msg::MultiArrayDimension());
+  msg.layout.dim[0].size = servo_pulse_width.size();
+  /* Copy in the data. */
+  msg.data.clear();
+  msg.data.insert(msg.data.end(), servo_pulse_width.begin(), servo_pulse_width.end());
+  /* Publish the message. */
+  _servo_pulse_width_pub->publish(msg);
+}
+
 void Node::ctrl_loop()
 {
   auto const now = std::chrono::steady_clock::now();
@@ -221,27 +234,11 @@ void Node::ctrl_loop()
 
   _state = next_state;
 
-  /* Periodically send engaged message in order to keep the Orel 20
-   * from accepting drive commands (keep it ready).
-   */
   static int8_t const OREL20_READINESS_ENGAGED = 3;
   pump_publish_readiness(OREL20_READINESS_ENGAGED);
-
-  /* Publish RPM set point via ROS message which will then
-   * be translated to the Cyphal layer.
-   */
   pump_publish_rpm_setpoint(_pump_rpm_setpoint);
 
-
-    std_msgs::msg::UInt16MultiArray msg;
-    /* Configure dimensions. */
-    msg.layout.dim.push_back(std_msgs::msg::MultiArrayDimension());
-    msg.layout.dim[0].size = next_servo_pulse_width.size();
-    /* Copy in the data. */
-    msg.data.clear();
-    msg.data.insert(msg.data.end(), next_servo_pulse_width.begin(), next_servo_pulse_width.end());
-    /* Publish the message. */
-    _servo_pulse_width_pub->publish(msg);
+  valve_block_publish_servo_pulse_width(next_servo_pulse_width);
 }
 
 std::tuple<Node::State, std::array<uint16_t, 12>> Node::handle_Startup()

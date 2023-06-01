@@ -68,6 +68,7 @@ private:
   void init_pub();
   void pump_publish_readiness(int8_t const readiness);
   void pump_publish_rpm_setpoint(float const rpm_setpoint);
+  void valve_block_publish_servo_pulse_width(std::array<uint16_t, 12> const & servo_pulse_width);
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};
