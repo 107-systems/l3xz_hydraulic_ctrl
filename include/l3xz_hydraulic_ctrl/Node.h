@@ -66,6 +66,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr _pump_rpm_setpoint_pub;
   rclcpp::Publisher<std_msgs::msg::UInt16MultiArray>::SharedPtr _servo_pulse_width_pub;
   void init_pub();
+  void pump_publish_readiness(int8_t const readiness);
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};

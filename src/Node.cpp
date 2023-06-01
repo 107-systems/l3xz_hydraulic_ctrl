@@ -168,6 +168,13 @@ void Node::init_pub()
   _servo_pulse_width_pub = create_publisher<std_msgs::msg::UInt16MultiArray>("/l3xz/servo_pulse_width/target", 1);
 }
 
+void Node::pump_publish_readiness(int8_t const readiness)
+{
+  std_msgs::msg::Int8 msg;
+  msg.data = readiness;
+  _pump_readiness_pub->publish(msg);
+}
+
 void Node::ctrl_loop()
 {
   auto const now = std::chrono::steady_clock::now();
@@ -197,12 +204,8 @@ void Node::ctrl_loop()
   /* Periodically send engaged message in order to keep the Orel 20
    * from accepting drive commands (keep it ready).
    */
-  {
-    static int8_t const OREL20_READINESS_ENGAGED = 3;
-    std_msgs::msg::Int8 msg;
-    msg.data = OREL20_READINESS_ENGAGED;
-    _pump_readiness_pub->publish(msg);
-  }
+  static int8_t const OREL20_READINESS_ENGAGED = 3;
+  pump_publish_readiness(OREL20_READINESS_ENGAGED);
 
   /* Publish RPM set point via ROS message which will then
    * be translated to the Cyphal layer.
