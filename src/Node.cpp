@@ -175,6 +175,13 @@ void Node::pump_publish_readiness(int8_t const readiness)
   _pump_readiness_pub->publish(msg);
 }
 
+void Node::pump_publish_rpm_setpoint(float const rpm_setpoint)
+{
+  std_msgs::msg::Float32 msg;
+  msg.data = rpm_setpoint;
+  _pump_rpm_setpoint_pub->publish(msg);
+}
+
 void Node::ctrl_loop()
 {
   auto const now = std::chrono::steady_clock::now();
@@ -210,12 +217,7 @@ void Node::ctrl_loop()
   /* Publish RPM set point via ROS message which will then
    * be translated to the Cyphal layer.
    */
-  {
-    std_msgs::msg::Float32 msg;
-    msg.data = _pump_rpm_setpoint;
-    _pump_rpm_setpoint_pub->publish(msg);
-  }
-
+  pump_publish_rpm_setpoint(_pump_rpm_setpoint);
 
   /* Compare all actual to target angles and calculate the necessary
    * RPM speed as a dependency of this.
