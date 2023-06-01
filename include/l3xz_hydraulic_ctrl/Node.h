@@ -76,8 +76,8 @@ private:
 
   enum class State { Startup, Control };
   State _state;
-  State handle_Startup();
-  State handle_Control();
+  std::tuple<State, std::array<uint16_t, 12>> handle_Startup();
+  std::tuple<State, std::array<uint16_t, 12>> handle_Control();
 
 
   static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
