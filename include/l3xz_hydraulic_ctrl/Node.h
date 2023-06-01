@@ -71,6 +71,16 @@ private:
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};
   rclcpp::TimerBase::SharedPtr _ctrl_loop_timer;
   void ctrl_loop();
+
+  static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
+  static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 200.0f;
+  std::chrono::steady_clock::time_point _startup_prev_rpm_inc;
+  float _pump_rpm_setpoint;
+  enum class PumpState { Startup, Control };
+  PumpState _pump_state;
+  void pump_ctrl();
+  PumpState pump_handle_Startup();
+  PumpState pump_handle_Control();
 };
 
 /**************************************************************************************
