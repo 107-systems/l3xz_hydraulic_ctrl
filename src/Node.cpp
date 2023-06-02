@@ -182,7 +182,7 @@ void Node::pump_publish_rpm_setpoint(float const rpm_setpoint)
   _pump_rpm_setpoint_pub->publish(msg);
 }
 
-void Node::valve_block_publish_servo_pulse_width(ValveBlockServoPulseWidth const & servo_pulse_width)
+void Node::valve_block_publish_servo_pulse_width(ServoPulseWidth const & servo_pulse_width)
 {
   std_msgs::msg::UInt16MultiArray msg;
   /* Configure dimensions. */
@@ -211,7 +211,7 @@ void Node::ctrl_loop()
 
   /* Perform state dependent actions. */
   State next_state = _state;
-  ValveBlockServoPulseWidth next_servo_pulse_width;
+  ServoPulseWidth next_servo_pulse_width;
 
   switch (_state)
   {
@@ -241,7 +241,7 @@ void Node::ctrl_loop()
   valve_block_publish_servo_pulse_width(next_servo_pulse_width);
 }
 
-std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Startup()
+std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Startup()
 {
   auto const now = std::chrono::steady_clock::now();
   auto const duration_since_last_incr = now - _startup_prev_rpm_inc;
@@ -262,7 +262,7 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Startup()
   return std::make_tuple(State::Startup, DEFAULT_SERVO_PULSE_WIDTH);
 }
 
-std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Control()
+std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Control()
 {
   /* Compare all actual to target angles and calculate the necessary
    * RPM speed as a dependency of this.
@@ -282,7 +282,7 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Control()
    * turned into ROS message -> Cyphal message ->
    * servo pulse width via OpenCyphalServoController-12
    */
-  ValveBlockServoPulseWidth servo_pulse_width;
+  ServoPulseWidth servo_pulse_width;
 
   auto const angle_diff_to_pulse_width_us =
     [](float const angle_diff_rad) -> uint16_t
