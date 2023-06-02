@@ -294,7 +294,7 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Control()
   auto const angle_diff_to_pulse_width_us =
     [](float const angle_diff_rad) -> uint16_t
     {
-      static float constexpr ANGLE_DIFF_EPSILON_rad = 2.0f * M_PI / 180.0f;
+      static float constexpr ANGLE_DIFF_EPSILON_rad = 3.0f * M_PI / 180.0f;
 
       static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500;
 
