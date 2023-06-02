@@ -68,7 +68,8 @@ private:
   void init_pub();
   void pump_publish_readiness(int8_t const readiness);
   void pump_publish_rpm_setpoint(float const rpm_setpoint);
-  void valve_block_publish_servo_pulse_width(std::array<uint16_t, 12> const & servo_pulse_width);
+  typedef std::array<uint16_t, 12> ValveBlockServoPulseWidth;
+  void valve_block_publish_servo_pulse_width(ValveBlockServoPulseWidth const & servo_pulse_width);
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};
@@ -77,8 +78,8 @@ private:
 
   enum class State { Startup, Control };
   State _state;
-  std::tuple<State, std::array<uint16_t, 12>> handle_Startup();
-  std::tuple<State, std::array<uint16_t, 12>> handle_Control();
+  std::tuple<State, ValveBlockServoPulseWidth> handle_Startup();
+  std::tuple<State, ValveBlockServoPulseWidth> handle_Control();
 
 
   static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
