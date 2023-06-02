@@ -294,6 +294,26 @@ Node::State Node::handle_Control()
   _servo_pulse_width[11] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Tibia)));
 
   /* Pump: */
+  bool is_error_in_pressure_reading = false;
+  if (_pressure_0_actual_pascal < 0.0)
+  {
+    is_error_in_pressure_reading = true;
+    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "error obtaining pressure from circuit #0 (possibly loose cable)");
+  }
+  if (_pressure_1_actual_pascal < 0.0)
+  {
+    is_error_in_pressure_reading = true;
+    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "error obtaining pressure from circuit #1 (possibly loose cable)");
+  }
+
+  if (is_error_in_pressure_reading) {
+    _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
+    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "error in pressure sensor circuits, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+    return State::Control;
+  }
+
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "P[0] = %0.1f Bar, P[1] = %0.1f Bar",
+                       _pressure_0_actual_pascal / (100*1000.0f), _pressure_1_actual_pascal / (100*1000.0f));
 
   /* State transition: */
   return State::Control;

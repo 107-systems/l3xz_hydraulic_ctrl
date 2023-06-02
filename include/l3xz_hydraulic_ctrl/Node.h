@@ -86,7 +86,7 @@ private:
   State handle_Control();
 
   static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
-  static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 200.0f;
+  static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 400.0f;
 
   static uint16_t constexpr SERVO_PULSE_WIDTH_MIN_us     = 1000U;
   static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500U;
