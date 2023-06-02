@@ -332,11 +332,15 @@ Node::State Node::handle_Control()
   static float constexpr PRESSURE_TARGET_Pascal = 10.f * (100*1000.0f); /* 10 bar */
   float pressure_error_pascal = 0.0f;
 
-  if (_pressure_0_actual_pascal < PRESSURE_TARGET_Pascal)
+  if (_pressure_0_actual_pascal < PRESSURE_TARGET_Pascal) {
     pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_0_actual_pascal);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Low pressure in circuit #0: %0.1f", _pressure_0_actual_pascal / (100*1000.0f));
+  }
 
-  if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal)
+  if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal) {
     pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_1_actual_pascal);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Low pressure in circuit #1: %0.1f", _pressure_1_actual_pascal / (100*1000.0f));
+  }
 
   static float constexpr k_PRESSURE_ERROR = 100.0f;
   float const pressure_error_bar = pressure_error_pascal / (100*1000.0f);
