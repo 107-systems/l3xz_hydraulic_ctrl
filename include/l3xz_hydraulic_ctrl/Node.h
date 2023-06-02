@@ -90,6 +90,13 @@ private:
   static uint16_t constexpr SERVO_PULSE_WIDTH_MIN_us     = 1000U;
   static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500U;
   static uint16_t constexpr SERVO_PULSE_WIDTH_MAX_us     = 2000U;
+
+  ValveBlockServoPulseWidth const DEFAULT_SERVO_PULSE_WIDTH =
+    {
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us
+    };
 };
 
 /**************************************************************************************

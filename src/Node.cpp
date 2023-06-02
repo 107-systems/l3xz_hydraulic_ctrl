@@ -243,13 +243,6 @@ void Node::ctrl_loop()
 
 std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Startup()
 {
-  ValveBlockServoPulseWidth const DEFAULT_SERVO_PULSE_WIDTH =
-    {
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us
-    };
-
   auto const now = std::chrono::steady_clock::now();
   auto const duration_since_last_incr = now - _startup_prev_rpm_inc;
 
