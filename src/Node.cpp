@@ -98,6 +98,11 @@ Node::Node()
   RCLCPP_INFO(get_logger(), "%s init complete.", get_name());
 }
 
+Node::~Node()
+{
+  RCLCPP_INFO(get_logger(), "%s shut down.", get_name());
+}
+
 /**************************************************************************************
  * PRIVATE MEMBER FUNCTIONS
  **************************************************************************************/
@@ -268,15 +273,23 @@ Node::State Node::handle_Control()
   auto const angle_diff_to_pulse_width_us =
     [](float const angle_diff_rad) -> uint16_t
     {
-      static float constexpr ANGLE_DIFF_EPSILON_rad = 3.0f * M_PI / 180.0f;
+      static float constexpr ANGLE_DIFF_EPSILON_rad = 2.5f * M_PI / 180.0f;
 
       if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
         return SERVO_PULSE_WIDTH_NEUTRAL_us;
 
+      float const k_ANGLE_DIFF = 50.0f;
+
       if (angle_diff_rad > 0.0)
-        return SERVO_PULSE_WIDTH_MIN_us;
+      {
+        float const servo_pulse_width = SERVO_PULSE_WIDTH_NEUTRAL_us - (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI));
+        return std::max(static_cast<uint16_t>(servo_pulse_width), SERVO_PULSE_WIDTH_MIN_us);
+      }
       else
-        return SERVO_PULSE_WIDTH_MAX_us;
+      {
+        float const servo_pulse_width = SERVO_PULSE_WIDTH_NEUTRAL_us + (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI));
+        return std::min(static_cast<uint16_t>(servo_pulse_width), SERVO_PULSE_WIDTH_MAX_us);
+      }
     };
 
   _servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));

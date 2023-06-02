@@ -45,6 +45,7 @@ class Node : public rclcpp::Node
 {
 public:
   Node();
+  ~Node();
 
 
 private:
