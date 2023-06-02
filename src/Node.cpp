@@ -328,6 +328,25 @@ Node::State Node::handle_Control()
   RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "P[0] = %0.1f Bar, P[1] = %0.1f Bar",
                        _pressure_0_actual_pascal / (100*1000.0f), _pressure_1_actual_pascal / (100*1000.0f));
 
+
+  static float constexpr PRESSURE_TARGET_Pascal = 10.f * (100*1000.0f); /* 10 bar */
+  float pressure_error_pascal = 0.0f;
+
+  if (_pressure_0_actual_pascal < PRESSURE_TARGET_Pascal)
+    pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_0_actual_pascal);
+
+  if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal)
+    pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_1_actual_pascal);
+
+  static float constexpr k_PRESSURE_ERROR = 100.0f;
+  float const pressure_error_bar = pressure_error_pascal / (100*1000.0f);
+  float const pump_rpm_setpoint_increase = k_PRESSURE_ERROR * pressure_error_bar;
+
+  _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM + pump_rpm_setpoint_increase;
+  _pump_rpm_setpoint = std::min(_pump_rpm_setpoint, 1000.0f);
+
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "pressur_error_bar = %0.1f, _pump_rpm_setpoint = %0.1f", pressure_error_bar, _pump_rpm_setpoint);
+
   /* State transition: */
   return State::Control;
 }
