@@ -84,9 +84,10 @@ Node::Node()
 , _pressure_0_actual_pascal{0.0f}
 , _pressure_1_actual_pascal{0.0f}
 , _prev_ctrl_loop_timepoint{std::chrono::steady_clock::now()}
+, _pump_rpm_setpoint{STARTUP_PUMP_RAMP_START_RPM}
+, _servo_pulse_width{DEFAULT_SERVO_PULSE_WIDTH}
 , _state{State::Startup}
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
-, _pump_rpm_setpoint{STARTUP_PUMP_RAMP_START_RPM}
 {
   init_heartbeat();
   init_sub();
@@ -168,29 +169,31 @@ void Node::init_pub()
   _servo_pulse_width_pub = create_publisher<std_msgs::msg::UInt16MultiArray>("/l3xz/servo_pulse_width/target", 1);
 }
 
-void Node::pump_publish_readiness(int8_t const readiness)
+void Node::pump_publish_readiness()
 {
+  static int8_t const OREL20_READINESS_ENGAGED = 3;
+
   std_msgs::msg::Int8 msg;
-  msg.data = readiness;
+  msg.data = OREL20_READINESS_ENGAGED;
   _pump_readiness_pub->publish(msg);
 }
 
-void Node::pump_publish_rpm_setpoint(float const rpm_setpoint)
+void Node::pump_publish_rpm_setpoint()
 {
   std_msgs::msg::Float32 msg;
-  msg.data = rpm_setpoint;
+  msg.data = _pump_rpm_setpoint;
   _pump_rpm_setpoint_pub->publish(msg);
 }
 
-void Node::valve_block_publish_servo_pulse_width(ServoPulseWidth const & servo_pulse_width)
+void Node::valve_block_publish_servo_pulse_width()
 {
   std_msgs::msg::UInt16MultiArray msg;
   /* Configure dimensions. */
   msg.layout.dim.push_back(std_msgs::msg::MultiArrayDimension());
-  msg.layout.dim[0].size = servo_pulse_width.size();
+  msg.layout.dim[0].size = _servo_pulse_width.size();
   /* Copy in the data. */
   msg.data.clear();
-  msg.data.insert(msg.data.end(), servo_pulse_width.begin(), servo_pulse_width.end());
+  msg.data.insert(msg.data.end(), _servo_pulse_width.begin(), _servo_pulse_width.end());
   /* Publish the message. */
   _servo_pulse_width_pub->publish(msg);
 }
@@ -210,39 +213,24 @@ void Node::ctrl_loop()
 
 
   /* Perform state dependent actions. */
-  State next_state = _state;
-  ServoPulseWidth next_servo_pulse_width;
-
   switch (_state)
   {
-    case State::Startup:
-    {
-      auto const [n_state, n_servo_pulse_width] = handle_Startup();
-      next_state = n_state;
-      next_servo_pulse_width = n_servo_pulse_width;
-    }
-    break;
-    case State::Control:
-    {
-      auto const [n_state, n_servo_pulse_width] = handle_Control();
-      next_state = n_state;
-      next_servo_pulse_width = n_servo_pulse_width;
-    }
-    break;
+    case State::Startup: _state = handle_Startup(); break;
+    case State::Control: _state = handle_Control(); break;
     default: __builtin_unreachable(); break;
   }
 
-  _state = next_state;
-
-  static int8_t const OREL20_READINESS_ENGAGED = 3;
-  pump_publish_readiness(OREL20_READINESS_ENGAGED);
-  pump_publish_rpm_setpoint(_pump_rpm_setpoint);
-
-  valve_block_publish_servo_pulse_width(next_servo_pulse_width);
+  pump_publish_readiness();
+  pump_publish_rpm_setpoint();
+  valve_block_publish_servo_pulse_width();
 }
 
-std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Startup()
+Node::State Node::handle_Startup()
 {
+  /* Valve block: */
+  _servo_pulse_width = DEFAULT_SERVO_PULSE_WIDTH;
+
+  /* Pump: */
   auto const now = std::chrono::steady_clock::now();
   auto const duration_since_last_incr = now - _startup_prev_rpm_inc;
 
@@ -252,21 +240,20 @@ std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Startup()
     _startup_prev_rpm_inc = now;
   }
 
+  /* State transition: */
   if (_pump_rpm_setpoint >= STARTUP_PUMP_RAMP_STOP_RPM)
   {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
     RCLCPP_INFO(get_logger(), "pump ramp up complete (RPM = %0.1f).", _pump_rpm_setpoint);
-    return std::make_tuple(State::Control, DEFAULT_SERVO_PULSE_WIDTH);
+    return State::Control;
   }
 
-  return std::make_tuple(State::Startup, DEFAULT_SERVO_PULSE_WIDTH);
+  return State::Startup;
 }
 
-std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Control()
+Node::State Node::handle_Control()
 {
-  /* Compare all actual to target angles and calculate the necessary
-   * RPM speed as a dependency of this.
-   */
+  /* Valve block: */
   std::map<HydraulicLegJointKey, float> angle_diff_rad_map;
   for (auto leg: LEG_LIST)
     for (auto joint: HYDRAULIC_JOINT_LIST)
@@ -277,12 +264,6 @@ std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Control()
 
       angle_diff_rad_map[make_key(leg, joint)] = angle_diff_rad;
     }
-
-  /* Calculate the desired servo pulse width which are
-   * turned into ROS message -> Cyphal message ->
-   * servo pulse width via OpenCyphalServoController-12
-   */
-  ServoPulseWidth servo_pulse_width;
 
   auto const angle_diff_to_pulse_width_us =
     [](float const angle_diff_rad) -> uint16_t
@@ -298,21 +279,24 @@ std::tuple<Node::State, Node::ServoPulseWidth> Node::handle_Control()
         return SERVO_PULSE_WIDTH_MAX_us;
     };
 
-  servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));
-  servo_pulse_width[ 1] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Femur)));
-  servo_pulse_width[ 2] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Tibia)));
-  servo_pulse_width[ 3] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Femur)));
-  servo_pulse_width[ 4] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Tibia)));
-  servo_pulse_width[ 5] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Femur)));
+  _servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));
+  _servo_pulse_width[ 1] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Femur)));
+  _servo_pulse_width[ 2] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Tibia)));
+  _servo_pulse_width[ 3] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Femur)));
+  _servo_pulse_width[ 4] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Tibia)));
+  _servo_pulse_width[ 5] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Femur)));
 
-  servo_pulse_width[ 6] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Femur)));
-  servo_pulse_width[ 7] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Tibia)));
-  servo_pulse_width[ 8] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Femur)));
-  servo_pulse_width[ 9] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia)));
-  servo_pulse_width[10] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Femur)));
-  servo_pulse_width[11] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Tibia)));
+  _servo_pulse_width[ 6] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Femur)));
+  _servo_pulse_width[ 7] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Tibia)));
+  _servo_pulse_width[ 8] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Femur)));
+  _servo_pulse_width[ 9] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia)));
+  _servo_pulse_width[10] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Femur)));
+  _servo_pulse_width[11] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Tibia)));
 
-  return std::make_tuple(State::Control, servo_pulse_width);
+  /* Pump: */
+
+  /* State transition: */
+  return State::Control;
 }
 
 /**************************************************************************************

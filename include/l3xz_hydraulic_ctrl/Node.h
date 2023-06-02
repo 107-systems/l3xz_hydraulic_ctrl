@@ -66,37 +66,37 @@ private:
   rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr _pump_rpm_setpoint_pub;
   rclcpp::Publisher<std_msgs::msg::UInt16MultiArray>::SharedPtr _servo_pulse_width_pub;
   void init_pub();
-  void pump_publish_readiness(int8_t const readiness);
-  void pump_publish_rpm_setpoint(float const rpm_setpoint);
-  typedef std::array<uint16_t, 12> ServoPulseWidth;
-  void valve_block_publish_servo_pulse_width(ServoPulseWidth const & servo_pulse_width);
+  void pump_publish_readiness();
+  void pump_publish_rpm_setpoint();
+  void valve_block_publish_servo_pulse_width();
 
   std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};
   rclcpp::TimerBase::SharedPtr _ctrl_loop_timer;
   void ctrl_loop();
 
+  float _pump_rpm_setpoint;
+  typedef std::array<uint16_t, 12> ServoPulseWidth;
+  ServoPulseWidth _servo_pulse_width;
+
   enum class State { Startup, Control };
   State _state;
-  std::tuple<State, ServoPulseWidth> handle_Startup();
-  std::tuple<State, ServoPulseWidth> handle_Control();
-
+  std::chrono::steady_clock::time_point _startup_prev_rpm_inc;
+  State handle_Startup();
+  State handle_Control();
 
   static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
   static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 200.0f;
-  std::chrono::steady_clock::time_point _startup_prev_rpm_inc;
-  float _pump_rpm_setpoint;
 
   static uint16_t constexpr SERVO_PULSE_WIDTH_MIN_us     = 1000U;
   static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500U;
   static uint16_t constexpr SERVO_PULSE_WIDTH_MAX_us     = 2000U;
 
-  ServoPulseWidth const DEFAULT_SERVO_PULSE_WIDTH =
-    {
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
-      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us
-    };
+  ServoPulseWidth const DEFAULT_SERVO_PULSE_WIDTH = {
+    SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+    SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+    SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us
+  };
 };
 
 /**************************************************************************************
