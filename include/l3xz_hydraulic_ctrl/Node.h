@@ -86,6 +86,10 @@ private:
   static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 200.0f;
   std::chrono::steady_clock::time_point _startup_prev_rpm_inc;
   float _pump_rpm_setpoint;
+
+  static uint16_t constexpr SERVO_PULSE_WIDTH_MIN_us     = 1000U;
+  static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500U;
+  static uint16_t constexpr SERVO_PULSE_WIDTH_MAX_us     = 2000U;
 };
 
 /**************************************************************************************

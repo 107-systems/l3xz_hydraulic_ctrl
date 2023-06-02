@@ -245,9 +245,9 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Startup()
 {
   ValveBlockServoPulseWidth const DEFAULT_SERVO_PULSE_WIDTH =
     {
-      1500, 1500, 1500, 1500,
-      1500, 1500, 1500, 1500,
-      1500, 1500, 1500, 1500
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us,
+      SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us, SERVO_PULSE_WIDTH_NEUTRAL_us
     };
 
   auto const now = std::chrono::steady_clock::now();
@@ -296,15 +296,13 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Control()
     {
       static float constexpr ANGLE_DIFF_EPSILON_rad = 3.0f * M_PI / 180.0f;
 
-      static uint16_t constexpr SERVO_PULSE_WIDTH_NEUTRAL_us = 1500;
-
       if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
         return SERVO_PULSE_WIDTH_NEUTRAL_us;
 
       if (angle_diff_rad > 0.0)
-        return 1000U;
+        return SERVO_PULSE_WIDTH_MIN_us;
       else
-        return 2000U;
+        return SERVO_PULSE_WIDTH_MAX_us;
     };
 
   servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));
