@@ -259,8 +259,10 @@ std::tuple<Node::State, Node::ValveBlockServoPulseWidth> Node::handle_Startup()
     _startup_prev_rpm_inc = now;
   }
 
-  if (_pump_rpm_setpoint >= STARTUP_PUMP_RAMP_STOP_RPM) {
+  if (_pump_rpm_setpoint >= STARTUP_PUMP_RAMP_STOP_RPM)
+  {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
+    RCLCPP_INFO(get_logger(), "pump ramp up complete (RPM = %0.1f).", _pump_rpm_setpoint);
     return std::make_tuple(State::Control, DEFAULT_SERVO_PULSE_WIDTH);
   }
 
