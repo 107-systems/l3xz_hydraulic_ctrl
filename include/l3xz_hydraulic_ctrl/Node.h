@@ -83,6 +83,7 @@ private:
   enum class State { Startup, Control };
   State _state;
   std::chrono::steady_clock::time_point _startup_prev_rpm_inc;
+  std::chrono::steady_clock::time_point _control_prev_no_pressure_error;
   State handle_Startup();
   State handle_Control();
 

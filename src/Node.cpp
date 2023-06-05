@@ -88,6 +88,7 @@ Node::Node()
 , _servo_pulse_width{DEFAULT_SERVO_PULSE_WIDTH}
 , _state{State::Startup}
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
+, _control_prev_no_pressure_error{std::chrono::steady_clock::now()}
 {
   init_heartbeat();
   init_sub();
@@ -295,6 +296,14 @@ Node::State Node::handle_Control()
   if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal) {
     pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_1_actual_pascal);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Low pressure in circuit #1: %0.1f", _pressure_1_actual_pascal / (100*1000.0f));
+  }
+
+  if (pressure_error_pascal <= 0.0f)
+  {
+    _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
+    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Both pressure circuits at or above target, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+    _control_prev_no_pressure_error = std::chrono::steady_clock::now();
+    return State::Control;
   }
 
   static float constexpr k_PRESSURE_ERROR = 100.0f;
