@@ -306,6 +306,14 @@ Node::State Node::handle_Control()
     return State::Control;
   }
 
+  auto const pressure_error_duration = std::chrono::steady_clock::now() - _control_prev_no_pressure_error;
+  if (pressure_error_duration > std::chrono::seconds(10))
+  {
+    _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
+    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "Pressure can't be stabilized, possible leak in hydraulic tank, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+    return State::Control;
+  }
+
   static float constexpr k_PRESSURE_ERROR = 100.0f;
   float const pressure_error_bar = pressure_error_pascal / (100*1000.0f);
   float const pump_rpm_setpoint_increase = k_PRESSURE_ERROR * pressure_error_bar;
