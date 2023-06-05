@@ -263,45 +263,44 @@ Node::State Node::handle_Control()
   _servo_pulse_width = calc_ServoPulseWidth(_angle_actual_rad_map, _angle_target_rad_map);
 
   /* Pump: */
-  bool is_error_in_pressure_reading = false;
-  if (_pressure_0_actual_pascal < 0.0)
-  {
-    is_error_in_pressure_reading = true;
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "error obtaining pressure from circuit #0 (possibly loose cable)");
-  }
-  if (_pressure_1_actual_pascal < 0.0)
-  {
-    is_error_in_pressure_reading = true;
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "error obtaining pressure from circuit #1 (possibly loose cable)");
-  }
+  bool const is_error_in_pressure_reading =
+    (_pressure_0_actual_pascal < 0.0) || (_pressure_1_actual_pascal < 0.0);
 
-  if (is_error_in_pressure_reading) {
+  if (is_error_in_pressure_reading)
+  {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
-    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "error in pressure sensor circuits, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+
+    RCLCPP_ERROR_THROTTLE(get_logger(),
+                          *get_clock(),
+                          1000,
+                          "P0 = %0.1f, P1 = %0.1f -> RPM = %0.1f : error in pressure sensing, defaulting to preset RPM.",
+                          _pressure_0_actual_pascal / (100*1000.0f),
+                          _pressure_1_actual_pascal / (100*1000.0f),
+                          _pump_rpm_setpoint);
+
     return State::Control;
   }
-
-  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "P[0] = %0.1f Bar, P[1] = %0.1f Bar",
-                       _pressure_0_actual_pascal / (100*1000.0f), _pressure_1_actual_pascal / (100*1000.0f));
-
 
   static float constexpr PRESSURE_TARGET_Pascal = 10.f * (100*1000.0f); /* 10 bar */
   float pressure_error_pascal = 0.0f;
 
-  if (_pressure_0_actual_pascal < PRESSURE_TARGET_Pascal) {
+  if (_pressure_0_actual_pascal < PRESSURE_TARGET_Pascal)
     pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_0_actual_pascal);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Low pressure in circuit #0: %0.1f", _pressure_0_actual_pascal / (100*1000.0f));
-  }
-
-  if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal) {
+  if (_pressure_1_actual_pascal < PRESSURE_TARGET_Pascal)
     pressure_error_pascal += (PRESSURE_TARGET_Pascal - _pressure_1_actual_pascal);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Low pressure in circuit #1: %0.1f", _pressure_1_actual_pascal / (100*1000.0f));
-  }
 
   if (pressure_error_pascal <= 0.0f)
   {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
-    RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "Both pressure circuits at or above target, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+
+    RCLCPP_INFO_THROTTLE(get_logger(),
+                         *get_clock(),
+                         1000,
+                         "P0 = %0.1f, P1 = %0.1f -> RPM = %0.1f : pressure control OFF.",
+                         _pressure_0_actual_pascal / (100*1000.0f),
+                         _pressure_1_actual_pascal / (100*1000.0f),
+                         _pump_rpm_setpoint);
+
     _control_prev_no_pressure_error = std::chrono::steady_clock::now();
     return State::Control;
   }
@@ -310,7 +309,14 @@ Node::State Node::handle_Control()
   if (pressure_error_duration > std::chrono::seconds(10))
   {
     _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM;
-    RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 1000, "Pressure can't be stabilized, possible leak in hydraulic tank, defaulting to RPM = %0.1f.", _pump_rpm_setpoint);
+    RCLCPP_ERROR_THROTTLE(get_logger(),
+                          *get_clock(),
+                          1000,
+                          "P0 = %0.1f, P1 = %0.1f -> RPM = %0.1f : pressure control OFF (could not stabilise).",
+                          _pressure_0_actual_pascal / (100*1000.0f),
+                          _pressure_1_actual_pascal / (100*1000.0f),
+                          _pump_rpm_setpoint);
+
     return State::Control;
   }
 
@@ -321,7 +327,13 @@ Node::State Node::handle_Control()
   _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM + pump_rpm_setpoint_increase;
   _pump_rpm_setpoint = std::min(_pump_rpm_setpoint, 1000.0f);
 
-  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000, "pressur_error_bar = %0.1f, _pump_rpm_setpoint = %0.1f", pressure_error_bar, _pump_rpm_setpoint);
+  RCLCPP_INFO_THROTTLE(get_logger(),
+                       *get_clock(),
+                       1000,
+                       "P0 = %0.1f, P1 = %0.1f -> RPM = %0.1f : pressure control ON.",
+                       _pressure_0_actual_pascal / (100*1000.0f),
+                       _pressure_1_actual_pascal / (100*1000.0f),
+                       _pump_rpm_setpoint);
 
   /* State transition: */
   return State::Control;
