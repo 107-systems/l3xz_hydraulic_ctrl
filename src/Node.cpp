@@ -361,17 +361,25 @@ Node::ServoPulseWidth const Node::calc_ServoPulseWidth(std::map<HydraulicLegJoin
       if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
         return SERVO_PULSE_WIDTH_NEUTRAL_us;
 
-      float const k_ANGLE_DIFF = 50.0f;
+      float const k_ANGLE_DIFF = 75.0f;
 
       if (angle_diff_rad > 0.0)
       {
-        float const servo_pulse_width = SERVO_PULSE_WIDTH_NEUTRAL_us - (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI));
-        return std::max(static_cast<uint16_t>(servo_pulse_width), SERVO_PULSE_WIDTH_MIN_us);
+        float const servo_pulse_width = std::max(
+          SERVO_PULSE_WIDTH_NEUTRAL_us - (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
+          static_cast<double>(SERVO_PULSE_WIDTH_MIN_us)
+        );
+
+        return static_cast<uint16_t>(servo_pulse_width);
       }
       else
       {
-        float const servo_pulse_width = SERVO_PULSE_WIDTH_NEUTRAL_us + (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI));
-        return std::min(static_cast<uint16_t>(servo_pulse_width), SERVO_PULSE_WIDTH_MAX_us);
+        float const servo_pulse_width = std::min(
+          SERVO_PULSE_WIDTH_NEUTRAL_us + (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
+          static_cast<double>(SERVO_PULSE_WIDTH_MAX_us)
+        );
+
+        return static_cast<uint16_t>(servo_pulse_width);
       }
     };
 
