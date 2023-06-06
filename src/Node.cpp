@@ -342,7 +342,24 @@ Node::State Node::handle_Control()
 Node::ServoPulseWidth const Node::calc_ServoPulseWidth(std::map<HydraulicLegJointKey, float> const & angle_actual_rad_map,
                                                        std::map<HydraulicLegJointKey, float> const & angle_target_rad_map)
 {
-  std::map<HydraulicLegJointKey, float> angle_diff_rad_map;
+  std::map<HydraulicLegJointKey, size_t> const LEG_JOINT_to_SERVO_NUM_MAP =
+    {
+      {make_key(Leg::RightBack,   HydraulicJoint::Tibia),  0},
+      {make_key(Leg::RightBack,   HydraulicJoint::Femur),  1},
+      {make_key(Leg::RightMiddle, HydraulicJoint::Tibia),  2},
+      {make_key(Leg::RightMiddle, HydraulicJoint::Femur),  3},
+      {make_key(Leg::RightFront,  HydraulicJoint::Tibia),  4},
+      {make_key(Leg::RightFront,  HydraulicJoint::Femur),  5},
+      {make_key(Leg::LeftFront,   HydraulicJoint::Femur),  6},
+      {make_key(Leg::LeftFront,   HydraulicJoint::Tibia),  7},
+      {make_key(Leg::LeftMiddle,  HydraulicJoint::Femur),  8},
+      {make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia),  9},
+      {make_key(Leg::LeftBack,    HydraulicJoint::Femur), 10},
+      {make_key(Leg::LeftBack,    HydraulicJoint::Tibia), 11}
+    };
+
+  ServoPulseWidth servo_pulse_width;
+
   for (auto leg: LEG_LIST)
     for (auto joint: HYDRAULIC_JOINT_LIST)
     {
@@ -350,55 +367,32 @@ Node::ServoPulseWidth const Node::calc_ServoPulseWidth(std::map<HydraulicLegJoin
       float const angle_target_rad = angle_target_rad_map.at(make_key(leg, joint));
       float const angle_diff_rad = angle_actual_rad - angle_target_rad;
 
-      angle_diff_rad_map[make_key(leg, joint)] = angle_diff_rad;
-    }
-
-  auto const angle_diff_to_pulse_width_us =
-    [](float const angle_diff_rad) -> uint16_t
-    {
       static float constexpr ANGLE_DIFF_EPSILON_rad = 2.5f * M_PI / 180.0f;
 
       if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
-        return SERVO_PULSE_WIDTH_NEUTRAL_us;
+        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = SERVO_PULSE_WIDTH_NEUTRAL_us;
 
       float const k_ANGLE_DIFF = 75.0f;
 
-      if (angle_diff_rad > 0.0)
+      if (angle_actual_rad > angle_target_rad)
       {
-        float const servo_pulse_width = std::max(
+        float const pulse_width = std::max(
           SERVO_PULSE_WIDTH_NEUTRAL_us - (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
           static_cast<double>(SERVO_PULSE_WIDTH_MIN_us)
         );
 
-        return static_cast<uint16_t>(servo_pulse_width);
+        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = static_cast<uint16_t>(pulse_width);
       }
       else
       {
-        float const servo_pulse_width = std::min(
+        float const pulse_width = std::min(
           SERVO_PULSE_WIDTH_NEUTRAL_us + (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
           static_cast<double>(SERVO_PULSE_WIDTH_MAX_us)
         );
 
-        return static_cast<uint16_t>(servo_pulse_width);
+        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = static_cast<uint16_t>(pulse_width);
       }
-    };
-
-
-  ServoPulseWidth servo_pulse_width;
-
-  servo_pulse_width[ 0] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Tibia)));
-  servo_pulse_width[ 1] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightBack,   HydraulicJoint::Femur)));
-  servo_pulse_width[ 2] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Tibia)));
-  servo_pulse_width[ 3] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightMiddle, HydraulicJoint::Femur)));
-  servo_pulse_width[ 4] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Tibia)));
-  servo_pulse_width[ 5] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::RightFront,  HydraulicJoint::Femur)));
-
-  servo_pulse_width[ 6] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Femur)));
-  servo_pulse_width[ 7] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftFront,   HydraulicJoint::Tibia)));
-  servo_pulse_width[ 8] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Femur)));
-  servo_pulse_width[ 9] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia)));
-  servo_pulse_width[10] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Femur)));
-  servo_pulse_width[11] = angle_diff_to_pulse_width_us(angle_diff_rad_map.at(make_key(Leg::LeftBack,    HydraulicJoint::Tibia)));
+    }
 
   return servo_pulse_width;
 }
