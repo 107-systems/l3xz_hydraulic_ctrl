@@ -1,14 +1,14 @@
 /**
  * Copyright (c) 2023 LXRobotics GmbH.
  * Author: Alexander Entinger <alexander.entinger@lxrobotics.com>
- * Contributors: https://github.com/107-systems/l3xz_hydraulic_ctrl/graphs/contributors.
+ * Contributors: https://github.com/107-systems/l3xz_pump_ctrl/graphs/contributors.
  */
 
 /**************************************************************************************
  * INCLUDE
  **************************************************************************************/
 
-#include <l3xz_hydraulic_ctrl/Node.h>
+#include <l3xz_pump_ctrl/Node.h>
 
 /**************************************************************************************
  * NAMESPACE
@@ -22,7 +22,7 @@ namespace l3xz
  **************************************************************************************/
 
 Node::Node()
-: rclcpp::Node("l3xz_hydraulic_ctrl")
+: rclcpp::Node("l3xz_pump_ctrl")
 , _pressure_0_actual_pascal{0.0f}
 , _pressure_1_actual_pascal{0.0f}
 , _prev_ctrl_loop_timepoint{std::chrono::steady_clock::now()}

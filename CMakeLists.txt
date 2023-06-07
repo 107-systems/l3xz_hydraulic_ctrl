@@ -1,7 +1,7 @@
 #######################################################################################
 cmake_minimum_required(VERSION 3.8)
 #######################################################################################
-project(l3xz_hydraulic_ctrl)
+project(l3xz_pump_ctrl)
 set(L3XZ_HYDRAULIC_CTRL_TARGET ${PROJECT_NAME}_node)
 #######################################################################################
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

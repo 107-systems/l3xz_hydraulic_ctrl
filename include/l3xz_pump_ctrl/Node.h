@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2023 LXRobotics GmbH.
  * Author: Alexander Entinger <alexander.entinger@lxrobotics.com>
- * Contributors: https://github.com/107-systems/l3xz_hydraulic_ctrl/graphs/contributors.
+ * Contributors: https://github.com/107-systems/l3xz_pump_ctrl/graphs/contributors.
  */
 
 #pragma once
