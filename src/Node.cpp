@@ -18,64 +18,6 @@ namespace l3xz
 {
 
 /**************************************************************************************
- * MODULE INTERNAL FUNCTIONS
- **************************************************************************************/
-
-static std::string JointToStr(HydraulicJoint const joint)
-{
-  switch(joint)
-  {
-    case HydraulicJoint::Femur: return std::string("femur"); break;
-    case HydraulicJoint::Tibia: return std::string("tibia"); break;
-    default: __builtin_unreachable();
-  }
-}
-
-static std::string LegToStr(Leg const leg)
-{
-  switch(leg)
-  {
-    case Leg::LeftFront:   return std::string("left_front");   break;
-    case Leg::LeftMiddle:  return std::string("left_middle");  break;
-    case Leg::LeftBack:    return std::string("left_back");    break;
-    case Leg::RightFront:  return std::string("right_front");  break;
-    case Leg::RightMiddle: return std::string("right_middle"); break;
-    case Leg::RightBack:   return std::string("right_back");   break;
-    default: __builtin_unreachable();
-  }
-}
-
-inline HydraulicLegJointKey make_key(Leg const leg, HydraulicJoint const joint)
-{
-  return std::tuple(leg, joint);
-}
-
-struct leg_joint_map_key_equal : public std::binary_function<HydraulicLegJointKey, HydraulicLegJointKey, bool>
-{
-  bool operator()(const HydraulicLegJointKey & v0, const HydraulicLegJointKey & v1) const
-  {
-    return (
-      std::get<0>(v0) == std::get<0>(v1) &&
-      std::get<1>(v0) == std::get<1>(v1)
-    );
-  }
-};
-
-/**************************************************************************************
- * GLOBAL CONSTANTS
- **************************************************************************************/
-
-static std::list<Leg> const LEG_LIST =
-{
-  Leg::LeftFront, Leg::LeftMiddle, Leg::LeftBack, Leg::RightFront, Leg::RightMiddle, Leg::RightBack
-};
-
-static std::list<HydraulicJoint> const HYDRAULIC_JOINT_LIST =
-{
-  HydraulicJoint::Femur, HydraulicJoint::Tibia
-};
-
-/**************************************************************************************
  * CTOR/DTOR
  **************************************************************************************/
 
@@ -85,7 +27,6 @@ Node::Node()
 , _pressure_1_actual_pascal{0.0f}
 , _prev_ctrl_loop_timepoint{std::chrono::steady_clock::now()}
 , _pump_rpm_setpoint{STARTUP_PUMP_RAMP_START_RPM}
-, _servo_pulse_width{DEFAULT_SERVO_PULSE_WIDTH}
 , _state{State::Startup}
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
 , _control_prev_no_pressure_error{std::chrono::steady_clock::now()}
@@ -118,39 +59,6 @@ void Node::init_heartbeat()
 
 void Node::init_sub()
 {
-  for (auto leg : LEG_LIST)
-    for (auto joint : HYDRAULIC_JOINT_LIST)
-    {
-      {
-        std::stringstream angle_actual_sub_topic;
-        angle_actual_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/actual";
-
-        _angle_actual_rad_map[make_key(leg, joint)] = 0.0f;
-
-        _angle_actual_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
-          angle_actual_sub_topic.str(),
-          1,
-          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const msg)
-          {
-            _angle_actual_rad_map.at(make_key(leg, joint)) = msg->data;
-          });
-      }
-      {
-        std::stringstream angle_target_sub_topic;
-        angle_target_sub_topic << "/l3xz/leg/" << LegToStr(leg) << "/" << JointToStr(joint) << "/angle/target";
-
-        _angle_target_rad_map[make_key(leg, joint)] = 0.0f;
-
-        _angle_target_sub[make_key(leg, joint)] = create_subscription<std_msgs::msg::Float32>(
-          angle_target_sub_topic.str(),
-          1,
-          [this, leg, joint](std_msgs::msg::Float32::SharedPtr const msg)
-          {
-            _angle_target_rad_map.at(make_key(leg, joint)) = msg->data;
-          });
-      }
-    }
-
   _pressure_0_sub = create_subscription<std_msgs::msg::Float32>(
     "/l3xz/pressure_0/actual",
     1,
@@ -172,7 +80,6 @@ void Node::init_pub()
 {
   _pump_readiness_pub = create_publisher<std_msgs::msg::Int8>("/l3xz/pump/readiness/target", 1);
   _pump_rpm_setpoint_pub = create_publisher<std_msgs::msg::Float32>("/l3xz/pump/rpm/target", 1);
-  _servo_pulse_width_pub = create_publisher<std_msgs::msg::UInt16MultiArray>("/l3xz/servo_pulse_width/target", 1);
 }
 
 void Node::pump_publish_readiness()
@@ -189,19 +96,6 @@ void Node::pump_publish_rpm_setpoint()
   std_msgs::msg::Float32 msg;
   msg.data = _pump_rpm_setpoint;
   _pump_rpm_setpoint_pub->publish(msg);
-}
-
-void Node::valve_block_publish_servo_pulse_width()
-{
-  std_msgs::msg::UInt16MultiArray msg;
-  /* Configure dimensions. */
-  msg.layout.dim.push_back(std_msgs::msg::MultiArrayDimension());
-  msg.layout.dim[0].size = _servo_pulse_width.size();
-  /* Copy in the data. */
-  msg.data.clear();
-  msg.data.insert(msg.data.end(), _servo_pulse_width.begin(), _servo_pulse_width.end());
-  /* Publish the message. */
-  _servo_pulse_width_pub->publish(msg);
 }
 
 void Node::ctrl_loop()
@@ -228,15 +122,10 @@ void Node::ctrl_loop()
 
   pump_publish_readiness();
   pump_publish_rpm_setpoint();
-  valve_block_publish_servo_pulse_width();
 }
 
 Node::State Node::handle_Startup()
 {
-  /* Valve block: */
-  _servo_pulse_width = DEFAULT_SERVO_PULSE_WIDTH;
-
-  /* Pump: */
   auto const now = std::chrono::steady_clock::now();
   auto const duration_since_last_incr = now - _startup_prev_rpm_inc;
 
@@ -259,10 +148,6 @@ Node::State Node::handle_Startup()
 
 Node::State Node::handle_Control()
 {
-  /* Valve block: */
-  _servo_pulse_width = calc_ServoPulseWidth(_angle_actual_rad_map, _angle_target_rad_map);
-
-  /* Pump: */
   bool const is_error_in_pressure_reading =
     (_pressure_0_actual_pascal < 0.0) || (_pressure_1_actual_pascal < 0.0);
 
@@ -337,64 +222,6 @@ Node::State Node::handle_Control()
 
   /* State transition: */
   return State::Control;
-}
-
-Node::ServoPulseWidth const Node::calc_ServoPulseWidth(std::map<HydraulicLegJointKey, float> const & angle_actual_rad_map,
-                                                       std::map<HydraulicLegJointKey, float> const & angle_target_rad_map)
-{
-  std::map<HydraulicLegJointKey, size_t> const LEG_JOINT_to_SERVO_NUM_MAP =
-    {
-      {make_key(Leg::RightBack,   HydraulicJoint::Tibia),  0},
-      {make_key(Leg::RightBack,   HydraulicJoint::Femur),  1},
-      {make_key(Leg::RightMiddle, HydraulicJoint::Tibia),  2},
-      {make_key(Leg::RightMiddle, HydraulicJoint::Femur),  3},
-      {make_key(Leg::RightFront,  HydraulicJoint::Tibia),  4},
-      {make_key(Leg::RightFront,  HydraulicJoint::Femur),  5},
-      {make_key(Leg::LeftFront,   HydraulicJoint::Femur),  6},
-      {make_key(Leg::LeftFront,   HydraulicJoint::Tibia),  7},
-      {make_key(Leg::LeftMiddle,  HydraulicJoint::Femur),  8},
-      {make_key(Leg::LeftMiddle,  HydraulicJoint::Tibia),  9},
-      {make_key(Leg::LeftBack,    HydraulicJoint::Femur), 10},
-      {make_key(Leg::LeftBack,    HydraulicJoint::Tibia), 11}
-    };
-
-  ServoPulseWidth servo_pulse_width;
-
-  for (auto leg: LEG_LIST)
-    for (auto joint: HYDRAULIC_JOINT_LIST)
-    {
-      float const angle_actual_rad = angle_actual_rad_map.at(make_key(leg, joint));
-      float const angle_target_rad = angle_target_rad_map.at(make_key(leg, joint));
-      float const angle_diff_rad = angle_actual_rad - angle_target_rad;
-
-      static float constexpr ANGLE_DIFF_EPSILON_rad = 2.5f * M_PI / 180.0f;
-
-      if (fabs(angle_diff_rad) < ANGLE_DIFF_EPSILON_rad)
-        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = SERVO_PULSE_WIDTH_NEUTRAL_us;
-
-      float const k_ANGLE_DIFF = 75.0f;
-
-      if (angle_actual_rad > angle_target_rad)
-      {
-        float const pulse_width = std::max(
-          SERVO_PULSE_WIDTH_NEUTRAL_us - (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
-          static_cast<double>(SERVO_PULSE_WIDTH_MIN_us)
-        );
-
-        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = static_cast<uint16_t>(pulse_width);
-      }
-      else
-      {
-        float const pulse_width = std::min(
-          SERVO_PULSE_WIDTH_NEUTRAL_us + (k_ANGLE_DIFF * fabs(angle_diff_rad * 180.f / M_PI)),
-          static_cast<double>(SERVO_PULSE_WIDTH_MAX_us)
-        );
-
-        servo_pulse_width[LEG_JOINT_to_SERVO_NUM_MAP.at(make_key(leg, joint))] = static_cast<uint16_t>(pulse_width);
-      }
-    }
-
-  return servo_pulse_width;
 }
 
 /**************************************************************************************
