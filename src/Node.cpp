@@ -131,7 +131,7 @@ Node::State Node::handle_Startup()
 
   if (duration_since_last_incr > std::chrono::milliseconds(100))
   {
-    _pump_rpm_setpoint += 10.0f;
+    _pump_rpm_setpoint += 20.0f;
     _startup_prev_rpm_inc = now;
   }
 
@@ -210,7 +210,7 @@ Node::State Node::handle_Control()
   float const pump_rpm_setpoint_increase = k_PRESSURE_ERROR * pressure_error_bar;
 
   _pump_rpm_setpoint = STARTUP_PUMP_RAMP_STOP_RPM + pump_rpm_setpoint_increase;
-  _pump_rpm_setpoint = std::min(_pump_rpm_setpoint, 1000.0f);
+  _pump_rpm_setpoint = std::min(_pump_rpm_setpoint, 1800.0f);
 
   RCLCPP_INFO_THROTTLE(get_logger(),
                        *get_clock(),
