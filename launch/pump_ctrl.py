@@ -11,8 +11,8 @@ def generate_launch_description():
       output='screen',
       emulate_tty=True,
       parameters=[
-        {'pump_standby_rpm' :  800.0},
-        {'pump_max_rpm'     : 1800.0},
+        {'pump_min_rpm' :  800.0},
+        {'pump_max_rpm' : 1800.0},
       ]
     )
   ])

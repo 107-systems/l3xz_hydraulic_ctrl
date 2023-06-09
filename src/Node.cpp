@@ -31,8 +31,8 @@ Node::Node()
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
 , _control_prev_no_pressure_error{std::chrono::steady_clock::now()}
 {
-  declare_parameter("pump_standby_rpm",  800.0);
-  declare_parameter("pump_max_rpm",     1800.0);
+  declare_parameter("pump_min_rpm",  800.0f);
+  declare_parameter("pump_max_rpm", 1800.0f);
 
   init_heartbeat();
   init_sub();
@@ -139,9 +139,9 @@ Node::State Node::handle_Startup()
   }
 
   /* State transition: */
-  if (_pump_rpm_setpoint >= get_parameter("pump_standby_rpm").as_double())
+  if (_pump_rpm_setpoint >= get_parameter("pump_min_rpm").as_double())
   {
-    _pump_rpm_setpoint = get_parameter("pump_standby_rpm").as_double();
+    _pump_rpm_setpoint = get_parameter("pump_min_rpm").as_double();
     RCLCPP_INFO(get_logger(), "pump ramp up complete (RPM = %0.1f).", _pump_rpm_setpoint);
     return State::Control;
   }
@@ -156,7 +156,7 @@ Node::State Node::handle_Control()
 
   if (is_error_in_pressure_reading)
   {
-    _pump_rpm_setpoint = get_parameter("pump_standby_rpm").as_double();
+    _pump_rpm_setpoint = get_parameter("pump_min_rpm").as_double();
 
     RCLCPP_ERROR_THROTTLE(get_logger(),
                           *get_clock(),
@@ -179,7 +179,7 @@ Node::State Node::handle_Control()
 
   if (pressure_error_pascal <= 0.0f)
   {
-    _pump_rpm_setpoint = get_parameter("pump_standby_rpm").as_double();
+    _pump_rpm_setpoint = get_parameter("pump_min_rpm").as_double();
 
     RCLCPP_INFO_THROTTLE(get_logger(),
                          *get_clock(),
@@ -196,7 +196,7 @@ Node::State Node::handle_Control()
   auto const pressure_error_duration = std::chrono::steady_clock::now() - _control_prev_no_pressure_error;
   if (pressure_error_duration > std::chrono::seconds(10))
   {
-    _pump_rpm_setpoint = static_cast<float>(get_parameter("pump_standby_rpm").as_double());
+    _pump_rpm_setpoint = static_cast<float>(get_parameter("pump_min_rpm").as_double());
     RCLCPP_ERROR_THROTTLE(get_logger(),
                           *get_clock(),
                           1000,
@@ -212,7 +212,7 @@ Node::State Node::handle_Control()
   float const pressure_error_bar = pressure_error_pascal / (100*1000.0f);
   float const pump_rpm_setpoint_increase = k_PRESSURE_ERROR * pressure_error_bar;
 
-  _pump_rpm_setpoint = get_parameter("pump_standby_rpm").as_double() + pump_rpm_setpoint_increase;
+  _pump_rpm_setpoint = get_parameter("pump_min_rpm").as_double() + pump_rpm_setpoint_increase;
   _pump_rpm_setpoint = std::min(_pump_rpm_setpoint, static_cast<float>(get_parameter("pump_max_rpm").as_double()));
 
   RCLCPP_INFO_THROTTLE(get_logger(),
