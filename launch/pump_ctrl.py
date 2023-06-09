@@ -10,6 +10,9 @@ def generate_launch_description():
       name='l3xz_pump_ctrl',
       output='screen',
       emulate_tty=True,
-      parameters=[]
+      parameters=[
+        {'pump_standby_rpm' :  800.0},
+        {'pump_max_rpm'     : 1800.0},
+      ]
     )
   ])
