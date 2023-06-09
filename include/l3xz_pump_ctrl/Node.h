@@ -70,7 +70,6 @@ private:
   State handle_Control();
 
   static float constexpr STARTUP_PUMP_RAMP_START_RPM =  20.0f;
-  static float constexpr STARTUP_PUMP_RAMP_STOP_RPM  = 400.0f;
 };
 
 /**************************************************************************************
