@@ -31,8 +31,9 @@ Node::Node()
 , _startup_prev_rpm_inc{std::chrono::steady_clock::now()}
 , _control_prev_no_pressure_error{std::chrono::steady_clock::now()}
 {
-  declare_parameter("pump_min_rpm",  800.0f);
+  declare_parameter("pump_min_rpm", 800.0f);
   declare_parameter("pump_max_rpm", 1800.0f);
+  declare_parameter("pump_timeout_sec", 60);
 
   init_heartbeat();
   init_sub();
@@ -194,7 +195,7 @@ Node::State Node::handle_Control()
   }
 
   auto const pressure_error_duration = std::chrono::steady_clock::now() - _control_prev_no_pressure_error;
-  if (pressure_error_duration > std::chrono::seconds(10))
+  if (pressure_error_duration > std::chrono::seconds(get_parameter("pump_timeout_sec").as_int()))
   {
     _pump_rpm_setpoint = static_cast<float>(get_parameter("pump_min_rpm").as_double());
     RCLCPP_ERROR_THROTTLE(get_logger(),
