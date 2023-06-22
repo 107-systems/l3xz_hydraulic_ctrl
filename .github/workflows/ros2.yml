@@ -47,6 +47,11 @@ jobs:
         repository: '107-systems/ros2_heartbeat'
         path: 'ros2_ws/src/ros2_heartbeat'
 
+    - uses: actions/checkout@v3
+      with:
+        repository: 107-systems/ros2_loop_rate_monitor
+        path: 'ros2_ws/src/ros2_loop_rate_monitor'
+
     - name: colcon build
       run: |
         source /opt/ros/${{ matrix.ros_distro }}/setup.bash
