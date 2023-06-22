@@ -21,6 +21,7 @@
 #include <std_msgs/msg/u_int16_multi_array.hpp>
 
 #include <ros2_heartbeat/Publisher.h>
+#include <ros2_loop_rate_monitor/Monitor.h>
 
 /**************************************************************************************
  * NAMESPACE
@@ -55,8 +56,8 @@ private:
   void pump_publish_readiness();
   void pump_publish_rpm_setpoint();
 
-  std::chrono::steady_clock::time_point _prev_ctrl_loop_timepoint;
   static std::chrono::milliseconds constexpr CTRL_LOOP_RATE{10};
+  loop_rate::Monitor::SharedPtr _ctrl_loop_rate_monitor;
   rclcpp::TimerBase::SharedPtr _ctrl_loop_timer;
   void ctrl_loop();
 
