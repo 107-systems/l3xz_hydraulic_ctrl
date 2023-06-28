@@ -20,7 +20,7 @@
 #include <std_msgs/msg/u_int64.hpp>
 #include <std_msgs/msg/u_int16_multi_array.hpp>
 
-#include <ros2_heartbeat/Publisher.h>
+#include <ros2_heartbeat/publisher/Publisher.h>
 #include <ros2_loop_rate_monitor/Monitor.h>
 
 /**************************************************************************************
@@ -42,7 +42,6 @@ public:
 
 
 private:
-  static std::chrono::milliseconds constexpr HEARTBEAT_LOOP_RATE{100};
   heartbeat::Publisher::SharedPtr _heartbeat_pub;
   void init_heartbeat();
 
