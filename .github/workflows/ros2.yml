@@ -38,16 +38,16 @@ jobs:
       run: | 
         mkdir -p ${{github.workspace}}/ros2_ws/src
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         path: 'ros2_ws/src/l3xz_pump_ctrl'
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: '107-systems/ros2_heartbeat'
         path: 'ros2_ws/src/ros2_heartbeat'
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: 107-systems/ros2_loop_rate_monitor
         path: 'ros2_ws/src/ros2_loop_rate_monitor'
